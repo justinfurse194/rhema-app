@@ -66,12 +66,14 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading]   = useState(true);
 
-  useEffect(() => {
+useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      setIsAdmin(u?.email === ADMIN_EMAIL);
+      const admin = u?.email === ADMIN_EMAIL;
+      setIsAdmin(admin);
       setLoading(false);
-      if (u) setMode("congregation");
+      if (u && admin) setMode("admin");
+      else if (u) setMode("congregation");
     });
     return unsub;
   }, []);
