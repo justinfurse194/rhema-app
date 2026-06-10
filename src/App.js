@@ -40,8 +40,8 @@ const VCALogo = ({ size = 48 }) => (
 
 const S = {
   app:  { fontFamily:"Georgia,serif", background:BG, minHeight:"100vh", color:TEXT },
-  hdr:  { background:`linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT2} 100%)`, color:"#fff", padding:"14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 2px 12px rgba(19,72,160,0.3)" },
-  body: { maxWidth:680, margin:"0 auto", padding:"20px 16px", paddingBottom:100 },
+  hdr:  { background:`linear-gradient(135deg, ${ACCENT} 0%, ${ACCENT2} 100%)`, color:"#fff", padding:"12px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 2px 12px rgba(19,72,160,0.3)" },
+  body: { maxWidth:680, margin:"0 auto", padding:"16px 12px", paddingBottom:120 },
   btn:  (bg, col="#fff", pad="10px 20px") => ({ background:bg, color:col, border:"none", borderRadius:8, padding:pad, fontFamily:"Georgia,serif", fontSize:14, cursor:"pointer", fontWeight:"bold" }),
   oBtn: (col=ACCENT) => ({ background:"transparent", color:col, border:`1.5px solid ${col}`, borderRadius:8, padding:"8px 16px", fontFamily:"Georgia,serif", fontSize:13, cursor:"pointer", fontWeight:"bold" }),
   card: (left=ACCENT) => ({ background:CARD, borderRadius:12, padding:18, marginBottom:14, boxShadow:"0 2px 8px rgba(0,0,0,0.07)", borderLeft:`4px solid ${left}` }),
@@ -84,20 +84,20 @@ export default function App() {
 
   const Header = ({ right }) => (
     <div style={S.hdr}>
-      <div style={{flex:1, display:"flex", alignItems:"center"}}>
+      <div style={{flex:1, display:"flex", alignItems:"center", minWidth:0}}>
         <div style={{cursor:"pointer"}} onClick={() => setMode(isAdmin ? "admin" : "congregation")}>
-          <div style={{fontSize:20, fontWeight:"bold", letterSpacing:1}}>Rhema</div>
-          <div style={{fontSize:10, opacity:.75, letterSpacing:.5}}>God's word for you</div>
+          <div style={{fontSize:18, fontWeight:"bold", letterSpacing:1, whiteSpace:"nowrap"}}>Rhema</div>
+          <div style={{fontSize:10, opacity:.75, letterSpacing:.5, whiteSpace:"nowrap"}}>God's word for you</div>
         </div>
       </div>
-      <div style={{flex:1, display:"flex", justifyContent:"center", alignItems:"center"}}>
-        <VCALogo size={32} />
+      <div style={{flex:"0 0 auto", display:"flex", justifyContent:"center", alignItems:"center", padding:"0 8px"}}>
+        <VCALogo size={28} />
       </div>
-      <div style={{flex:1, display:"flex", justifyContent:"flex-end", alignItems:"center", gap:8}}>
+      <div style={{flex:1, display:"flex", justifyContent:"flex-end", alignItems:"center", gap:6, minWidth:0}}>
         {right}
         {user && (
           <button onClick={() => { signOut(auth); setMode("splash"); }}
-            style={{background:"rgba(255,255,255,0.15)", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", borderRadius:6, padding:"6px 10px", fontFamily:"Georgia,serif", fontSize:11, cursor:"pointer"}}>
+            style={{background:"rgba(255,255,255,0.15)", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", borderRadius:6, padding:"5px 8px", fontFamily:"Georgia,serif", fontSize:11, cursor:"pointer", whiteSpace:"nowrap"}}>
             Sign Out
           </button>
         )}
@@ -129,12 +129,12 @@ function Splash({ setMode, user, isAdmin, Header }) {
         <div style={{textAlign:"center", padding:"28px 0 28px"}}>
           <h1 style={{margin:"0 0 2px", fontSize:32, color:ACCENT, letterSpacing:1}}>Rhema</h1>
           <p style={{color:MUTED, fontSize:15, margin:"0 0 24px"}}>God's word for you</p>
-          <button style={{...S.btn(`linear-gradient(135deg,${ACCENT},${ACCENT2})`), width:"100%", maxWidth:300, padding:"14px 20px", fontSize:16, marginBottom:12, borderRadius:10}}
+          <button style={{...S.btn(`linear-gradient(135deg,${ACCENT},${ACCENT2})`), width:"100%", maxWidth:300, padding:"14px 20px", fontSize:16, marginBottom:12, borderRadius:10, display:"block", margin:"0 auto 12px"}}
             onClick={() => setMode(user ? (isAdmin ? "admin" : "congregation") : "login")}>
             {user ? "Continue" : "Sign In"}
           </button>
           {!user && (
-            <button style={{...S.btn("transparent", ACCENT, "12px 20px"), width:"100%", maxWidth:300, border:`1.5px solid ${ACCENT}`, borderRadius:10, fontSize:15}}
+            <button style={{...S.btn("transparent", ACCENT, "12px 20px"), width:"100%", maxWidth:300, border:`1.5px solid ${ACCENT}`, borderRadius:10, fontSize:15, display:"block", margin:"0 auto"}}
               onClick={() => setMode("register")}>
               Create Account
             </button>
@@ -344,14 +344,15 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
   const pid = sermon.id;
   const [p, setP]             = useState(p0);
   const [audio, setAudio]     = useState(p0.audioDataUrl || null);
+  const [audioBlob, setAudioBlob] = useState(null);
   const [rec, setRec]         = useState(false);
   const [rt, setRt]           = useState(0);
   const [gl, setGl]           = useState(false);
   const [shared, setShared]   = useState([]);
   const [annotations, setAnnotations] = useState(p0.annotations || {});
-  const [noteModal, setNoteModal]     = useState(null); // { paraIndex, existing }
+  const [noteModal, setNoteModal]     = useState(null);
   const [noteText, setNoteText]       = useState("");
-  const [activePanel, setActivePanel] = useState(null); // "godSpoke" | "summary" | null
+  const [activePanel, setActivePanel] = useState(null);
   const [godSpoke, setGodSpoke]       = useState(p0.godSpoke || "");
   const mrRef  = useRef(null);
   const chunks = useRef([]);
@@ -364,8 +365,9 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
     return unsub;
   }, [pid]);
 
-  const persist = async (updates, url) => {
-    const entry = { ...p, ...updates, audioDataUrl: url !== undefined ? url : audio, annotations };
+  const persist = async (updates) => {
+    const entry = { ...p, ...updates, annotations };
+    if (audio) entry.audioDataUrl = audio;
     setP(entry);
     if (hasContent(entry)) {
       await setDoc(doc(db,"users",user.uid,"entries",pid), entry);
@@ -398,28 +400,37 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       chunks.current = [];
-      const mr = new MediaRecorder(stream);
+      const options = MediaRecorder.isTypeSupported("audio/webm") ? { mimeType:"audio/webm" } : {};
+      const mr = new MediaRecorder(stream, options);
       mrRef.current = mr;
       mr.ondataavailable = e => { if (e.data.size > 0) chunks.current.push(e.data); };
-      mr.onstop = () => {
-        const blob = new Blob(chunks.current, { type: "audio/webm" });
+      mr.onstop = async () => {
+        const mimeType = mr.mimeType || "audio/webm";
+        const blob = new Blob(chunks.current, { type: mimeType });
+        setAudioBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setAudio(url);
+        // Save as base64
         const reader = new FileReader();
         reader.onload = async () => {
-          const url = reader.result;
-          setAudio(url);
-          await persist({}, url);
+          const base64 = reader.result;
+          setAudio(base64);
+          const entry = { ...p, audioDataUrl: base64, annotations };
+          await setDoc(doc(db,"users",user.uid,"entries",pid), entry);
         };
         reader.readAsDataURL(blob);
         stream.getTracks().forEach(t => t.stop());
       };
-      mr.start();
+      mr.start(1000);
       setRec(true); setRt(0);
       timer.current = setInterval(() => setRt(t => t + 1), 1000);
-    } catch { alert("Microphone access denied. Please allow microphone access in your browser settings."); }
+    } catch(e) {
+      alert("Microphone access denied. Please allow microphone access in your browser settings.");
+    }
   };
 
   const stopRec = () => {
-    if (mrRef.current && mrRef.current.state !== "inactive") mrRef.current.stop();
+    if (mrRef.current && mrRef.current.state === "recording") mrRef.current.stop();
     setRec(false);
     clearInterval(timer.current);
   };
@@ -427,7 +438,10 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
   const delAudio = async () => {
     if (!window.confirm("Delete recording?")) return;
     setAudio(null);
-    await persist({}, null);
+    setAudioBlob(null);
+    const entry = { ...p, audioDataUrl: null, annotations };
+    setP(entry);
+    await setDoc(doc(db,"users",user.uid,"entries",pid), entry);
   };
 
   const genSummary = async () => {
@@ -452,21 +466,21 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
       });
       const data = await res.json();
       const text = data.content ? data.content.map(b => b.text||"").join("") : "Could not generate summary.";
-      await persist({ summary: text }, audio);
+      await persist({ summary: text });
       setActivePanel("summary");
-    } catch (e) {
-      await persist({ summary: "Error generating summary. Please try again." }, audio);
+    } catch(e) {
+      await persist({ summary: "Error generating summary. Please try again." });
     }
     setGl(false);
   };
 
   const saveGodSpoke = async () => {
-    await persist({ godSpoke }, audio);
+    await persist({ godSpoke });
   };
 
   const toggleShare = async () => {
     const next = !p.shared;
-    await persist({ shared: next }, audio);
+    await persist({ shared: next, godSpoke });
     const sharedRef = doc(db,"shared",pid,"entries",user.uid);
     if (next && godSpoke) {
       await setDoc(sharedRef, { email: user.email, text: godSpoke });
@@ -477,6 +491,16 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
 
   const paragraphs = sermon.notes ? sermon.notes.split("\n").filter(l => l.trim()) : [];
 
+  const FabBtn = ({ onClick, color, label, icon, size=48 }) => (
+    <div style={{display:"flex", flexDirection:"column", alignItems:"center", gap:3}}>
+      <button onClick={onClick}
+        style={{ width:size, height:size, borderRadius:size/2, background:color, border:"none", fontSize:size*0.38, cursor:"pointer", boxShadow:"0 3px 10px rgba(0,0,0,0.25)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+        {icon}
+      </button>
+      <span style={{fontSize:9, color:"#555", fontFamily:"Georgia,serif", fontWeight:"bold", letterSpacing:.3}}>{label}</span>
+    </div>
+  );
+
   return (
     <div style={S.app}>
       <Header right={null} />
@@ -484,18 +508,18 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
 
         {/* Sermon Header */}
         <div style={{marginBottom:16}}>
-          <h2 style={{margin:"0 0 4px", fontSize:22}}>{sermon.title}</h2>
-          <div style={{color:MUTED, fontSize:14, marginBottom:8}}>{sermon.speaker && sermon.speaker+" · "}{fmt(sermon.date)}</div>
+          <h2 style={{margin:"0 0 4px", fontSize:20}}>{sermon.title}</h2>
+          <div style={{color:MUTED, fontSize:13, marginBottom:8}}>{sermon.speaker && sermon.speaker+" · "}{fmt(sermon.date)}</div>
           {sermon.scriptures && sermon.scriptures.split(",").map((sc,i) => (
             <span key={i} style={S.tag()}>📖 {sc.trim()}</span>
           ))}
         </div>
 
-        {/* Audio Player (if recorded) */}
+        {/* Audio Player */}
         {audio && !rec && (
           <div style={{background:"#F0F6FF", border:"1.5px solid #90BAE8", borderRadius:12, padding:14, marginBottom:16}}>
             <div style={{fontSize:12, fontWeight:"bold", color:MUTED, textTransform:"uppercase", letterSpacing:1, marginBottom:8}}>🎙️ Your Recording</div>
-            <audio controls src={audio} style={{width:"100%", marginBottom:8}} />
+            <audio controls src={audio} style={{width:"100%", marginBottom:8}} preload="auto" />
             <button style={{...S.btn("#FEE2E2","#B91C1C","6px 12px"), fontSize:12}} onClick={delAudio}>Delete Recording</button>
           </div>
         )}
@@ -509,11 +533,9 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
           </div>
         )}
 
-        {/* Pastor's Notes with inline annotation */}
+        {/* Pastor's Notes */}
         <div style={{...S.card("#22C55E"), marginBottom:16}}>
-          <div style={{fontSize:12, fontWeight:"bold", color:MUTED, textTransform:"uppercase", letterSpacing:1, marginBottom:12, borderBottom:"1px solid #DDE4EE", paddingBottom:6}}>
-            📋 Pastor's Notes
-          </div>
+          <div style={S.sec}>📋 Pastor's Notes</div>
           {paragraphs.length === 0
             ? <div style={{color:MUTED, fontStyle:"italic"}}>No notes provided yet.</div>
             : paragraphs.map((para, i) => (
@@ -521,17 +543,17 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
                 <div style={{display:"flex", alignItems:"flex-start", gap:8}}>
                   <div style={{fontSize:15, lineHeight:1.8, flex:1}}>{para}</div>
                   <button
-                    onClick={() => { setNoteModal({ paraIndex: i, existing: annotations[i] || "" }); setNoteText(annotations[i] || ""); }}
-                    style={{ background: annotations[i] ? "#DBEAFE" : "#F1F5F9", border:"none", borderRadius:6, width:28, height:28, cursor:"pointer", fontSize:16, flexShrink:0, marginTop:4, display:"flex", alignItems:"center", justifyContent:"center" }}
+                    onClick={() => { setNoteModal({ paraIndex:i, existing:annotations[i]||"" }); setNoteText(annotations[i]||""); }}
+                    style={{ background:annotations[i]?"#DBEAFE":"#F1F5F9", border:"none", borderRadius:6, width:30, height:30, cursor:"pointer", fontSize:16, flexShrink:0, marginTop:4, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,0.1)" }}
                     title="Add personal note"
                   >
                     {annotations[i] ? "✏️" : "+"}
                   </button>
                 </div>
                 {annotations[i] && (
-                  <div style={{marginTop:6, padding:"8px 12px", background:"#EFF6FF", borderRadius:8, borderLeft:"3px solid #3B82F6"}}>
-                    <span style={{color:"#1D4ED8", fontStyle:"italic", fontSize:14}}>[ {annotations[i]} ]</span>
-                    <button onClick={() => deleteNote(i)} style={{background:"none", border:"none", color:"#93C5FD", cursor:"pointer", fontSize:12, marginLeft:8}}>✕</button>
+                  <div style={{marginTop:6, padding:"8px 12px", background:"#EFF6FF", borderRadius:8, borderLeft:"3px solid #3B82F6", display:"flex", alignItems:"flex-start", gap:8}}>
+                    <span style={{color:"#1D4ED8", fontStyle:"italic", fontSize:14, flex:1}}>[ {annotations[i]} ]</span>
+                    <button onClick={() => deleteNote(i)} style={{background:"none", border:"none", color:"#93C5FD", cursor:"pointer", fontSize:14, padding:0}}>✕</button>
                   </div>
                 )}
               </div>
@@ -541,7 +563,7 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
         {/* God Spoke Panel */}
         {activePanel === "godSpoke" && (
           <div style={{background:SPOKE_BG, border:`2px solid ${SPOKE_BORDER}`, borderRadius:12, padding:18, marginBottom:16}}>
-            <div style={{fontWeight:"bold", color:"#1A4A80", fontSize:14, marginBottom:4}}>🕊️ How God Spoke to Me</div>
+            <div style={{fontWeight:"bold", color:"#1A4A80", fontSize:14, marginBottom:4}}>📖 How God Spoke to Me</div>
             <div style={{fontSize:12, color:"#3A6A9A", marginBottom:10, fontStyle:"italic"}}>What did the Holy Spirit highlight for you in today's message?</div>
             <textarea style={S.ta(5)} value={godSpoke} onChange={e => setGodSpoke(e.target.value)} placeholder="Lord, through today's message you showed me..." />
             <div style={{display:"flex", gap:8, marginTop:10}}>
@@ -569,15 +591,20 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
         {activePanel === "summary" && (
           <div style={{background:"#FFFBEF", border:`1.5px solid ${GOLD}`, borderRadius:12, padding:18, marginBottom:16}}>
             <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10}}>
-              <div style={{fontSize:13, fontWeight:"bold", color:"#8A6E2F", textTransform:"uppercase", letterSpacing:.8}}>✨ AI Summary</div>
+              <div style={{fontSize:13, fontWeight:"bold", color:"#8A6E2F", textTransform:"uppercase", letterSpacing:.8}}>⭐ AI Summary</div>
               <div style={{display:"flex", gap:8}}>
-                <button style={{...S.btn(GOLD,"#fff","6px 12px"), fontSize:12}} onClick={genSummary}>{gl ? "..." : "Regenerate"}</button>
+                <button style={{...S.btn(GOLD,"#fff","6px 12px"), fontSize:12}} onClick={genSummary}>{gl?"...":"Regenerate"}</button>
                 <button style={S.btn("#F1F5F9","#6B7A8D","6px 12px")} onClick={() => setActivePanel(null)}>Close</button>
               </div>
             </div>
-            {gl && <div style={{color:MUTED, fontStyle:"italic", fontSize:14}}>Reflecting on the message... ✨</div>}
+            {gl && <div style={{color:MUTED, fontStyle:"italic", fontSize:14}}>Reflecting on the message... ⭐</div>}
             {p.summary && !gl && <div style={{fontSize:15, lineHeight:1.8, color:"#5A4A20"}}>{p.summary}</div>}
-            {!p.summary && !gl && <div style={{color:MUTED, fontSize:13, fontStyle:"italic"}}>Tap "Generate" to get your personal AI recap.</div>}
+            {!p.summary && !gl && (
+              <div style={{textAlign:"center", padding:"10px 0"}}>
+                <div style={{color:MUTED, fontSize:13, fontStyle:"italic", marginBottom:10}}>Tap below to get your personal AI recap.</div>
+                <button style={{...S.btn(GOLD), padding:"10px 24px"}} onClick={genSummary}>Generate Summary</button>
+              </div>
+            )}
           </div>
         )}
 
@@ -596,32 +623,33 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
       </div>
 
       {/* Floating Action Buttons */}
-      <div style={{position:"fixed", bottom:24, right:20, display:"flex", flexDirection:"column", gap:12, zIndex:100}}>
-        {/* God Spoke */}
-        <button
-          onClick={() => setActivePanel(activePanel === "godSpoke" ? null : "godSpoke")}
-          style={{ width:56, height:56, borderRadius:28, background: activePanel==="godSpoke" ? "#1A4A80" : SPOKE_BORDER, border:"none", fontSize:22, cursor:"pointer", boxShadow:"0 4px 12px rgba(0,0,0,0.2)", display:"flex", alignItems:"center", justifyContent:"center" }}
-          title="How God Spoke to Me"
-        >🕊️</button>
-
-        {/* AI Summary */}
-        <button
-          onClick={() => { if (activePanel !== "summary") { setActivePanel("summary"); if (!p.summary) genSummary(); } else setActivePanel(null); }}
-          style={{ width:56, height:56, borderRadius:28, background: activePanel==="summary" ? "#8A6E2F" : GOLD, border:"none", fontSize:22, cursor:"pointer", boxShadow:"0 4px 12px rgba(0,0,0,0.2)", display:"flex", alignItems:"center", justifyContent:"center" }}
-          title="AI Summary"
-        >✨</button>
-
-        {/* Record */}
-        <button
+      <div style={{position:"fixed", bottom:20, right:16, display:"flex", flexDirection:"column", alignItems:"center", gap:10, zIndex:100}}>
+        <FabBtn
+          onClick={() => setActivePanel(p => p==="godSpoke" ? null : "godSpoke")}
+          color={activePanel==="godSpoke" ? "#1A4A80" : SPOKE_BORDER}
+          icon="📖"
+          label="God Spoke"
+          size={46}
+        />
+        <FabBtn
+          onClick={() => { setActivePanel(p => { const next = p==="summary" ? null : "summary"; if (next==="summary" && !p.summary) genSummary(); return next; }); }}
+          color={activePanel==="summary" ? "#8A6E2F" : GOLD}
+          icon="⭐"
+          label="Summary"
+          size={46}
+        />
+        <FabBtn
           onClick={rec ? stopRec : startRec}
-          style={{ width:64, height:64, borderRadius:32, background: rec ? "#EF4444" : ACCENT, border:"none", fontSize:26, cursor:"pointer", boxShadow:"0 4px 16px rgba(0,0,0,0.25)", display:"flex", alignItems:"center", justifyContent:"center", animation: rec ? "pulse 1s infinite" : "none" }}
-          title={rec ? "Stop Recording" : "Record Message"}
-        >🎙️</button>
+          color={rec ? "#EF4444" : "#CC0000"}
+          icon={rec ? "⏹" : "⏺"}
+          label={rec ? `Stop ${fmtTime(rt)}` : "Record"}
+          size={52}
+        />
       </div>
 
       {/* Note Modal */}
       {noteModal !== null && (
-        <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:200, display:"flex", alignItems:"flex-end", justifyContent:"center"}}>
+        <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:200, display:"flex", alignItems:"flex-end", justifyContent:"center"}} onClick={e => { if(e.target===e.currentTarget) setNoteModal(null); }}>
           <div style={{background:CARD, borderRadius:"16px 16px 0 0", padding:24, width:"100%", maxWidth:680, boxShadow:"0 -4px 24px rgba(0,0,0,0.15)"}}>
             <div style={{fontWeight:"bold", color:ACCENT, fontSize:15, marginBottom:12}}>📝 Personal Note</div>
             <textarea
@@ -642,7 +670,7 @@ function SermonDetail({ sermon, user, personal: p0, back, Header }) {
         </div>
       )}
 
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}} * { -webkit-tap-highlight-color: transparent; }`}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}} * { -webkit-tap-highlight-color: transparent; } audio { border-radius: 8px; }`}</style>
     </div>
   );
 }
