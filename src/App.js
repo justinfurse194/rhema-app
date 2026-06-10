@@ -86,10 +86,10 @@ useEffect(() => {
     return unsub;
   }, []);
 
-  const Header = ({ left, right }) => (
+ const Header = ({ left, right }) => (
     <div style={S.hdr}>
-      <div style={{flex:1, display:"flex", alignItems:"center"}}>
-        <div>
+      <div style={{flex:1, display:"flex", alignItems:"center", gap:10}}>
+        <div style={{cursor:"pointer"}} onClick={() => setMode(isAdmin ? "admin" : "congregation")}>
           <div style={{fontSize:20, fontWeight:"bold", letterSpacing:1}}>Rhema</div>
           <div style={{fontSize:10, opacity:.75, letterSpacing:.5}}>God's word for you</div>
         </div>
@@ -99,6 +99,12 @@ useEffect(() => {
       </div>
       <div style={{flex:1, display:"flex", justifyContent:"flex-end", alignItems:"center", gap:10}}>
         {right}
+        {user && (
+          <button onClick={() => { signOut(auth); setMode("splash"); }}
+            style={{background:"rgba(255,255,255,0.15)", border:"1px solid rgba(255,255,255,0.3)", color:"#fff", borderRadius:6, padding:"6px 12px", fontFamily:"Georgia,serif", fontSize:12, cursor:"pointer"}}>
+            Sign Out
+          </button>
+        )}
       </div>
     </div>
   );
