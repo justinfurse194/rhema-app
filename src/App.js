@@ -10,10 +10,12 @@ const SPOKE_BG = "#EBF2FC", SPOKE_BORDER = "#90BAE8";
 
 const fmt = d => { if (!d) return ""; const [y,m,day] = d.split("-"); return new Date(+y,+m-1,+day).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}); };
 const fmtT = s => `${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
-const scriptureUrl = ref => `https://www.biblegateway.com/passage/?search=${encodeURIComponent(ref.trim())}&version=NIV`;
+const splitRefs = s => s.split(/\s*(?:,|;|&|\band\b)\s*/i).filter(x=>x.trim());
+const normalizeDash = s => s.replace(/[\u2010-\u2015]/g, "-");
+const scriptureUrl = ref => `https://www.biblegateway.com/passage/?search=${encodeURIComponent(normalizeDash(ref).trim())}&version=NIV`;
 const BIBLE_BOOKS = "Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|(?:1|2|First|Second|I|II)?\\s?Samuel|(?:1|2|First|Second|I|II)?\\s?Kings|(?:1|2|First|Second|I|II)?\\s?Chronicles|Ezra|Nehemiah|Esther|Job|Psalms?|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|(?:1|2|First|Second|I|II)?\\s?Corinthians|Galatians|Ephesians|Philippians|Colossians|(?:1|2|First|Second|I|II)?\\s?Thessalonians|(?:1|2|First|Second|I|II)?\\s?Timothy|Titus|Philemon|Hebrews|James|(?:1|2|First|Second|I|II)?\\s?Peter|(?:1|2|First|Second|I|II|1-3|First-Third)?\\s?John|Jude|Revelation";
 
-const SCRIPTURE_RE = new RegExp(`\\b((?:[1-3]\\s)?(?:${BIBLE_BOOKS}))\\s(\\d{1,3}(?::\\d{1,3}(?:-\\d{1,3})?)?)`, "g");
+const SCRIPTURE_RE = new RegExp(`\\b((?:[1-3]\\s)?(?:${BIBLE_BOOKS}))\\s(\\d{1,3}(?::\\d{1,3}(?:[-\\u2010-\\u2015]\\d{1,3})?)?)`, "g");
 
 const linkifyScripture = text => {
   const parts = []; let last = 0; let m;
@@ -405,7 +407,7 @@ const genSummary = async () => {
         {/* Sermon title */}
         <h2 style={{margin:"0 0 3px", fontSize:20}}>{sermon.title}</h2>
         <div style={{color:MUTED, fontSize:13, marginBottom:8}}>{sermon.speaker&&sermon.speaker+" · "}{fmt(sermon.date)}</div>
-     {sermon.scriptures&&sermon.scriptures.split(",").map((sc,i)=>
+    {sermon.scriptures&&splitRefs(sermon.scriptures).map((sc,i)=>
           <span key={i} onClick={e=>{e.preventDefault();e.stopPropagation();window.open(scriptureUrl(sc),"_blank","noopener,noreferrer");}} style={{...S.tag(), textDecoration:"none", cursor:"pointer"}}>📖 {sc.trim()}</span>
         )}
 
