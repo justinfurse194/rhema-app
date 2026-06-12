@@ -296,7 +296,7 @@ function Detail({sermon, user, p0, back}) {
     await setDoc(doc(db,"users",user.uid,"entries",pid),e);
   };
 
-  const genSummary = async () => {
+ const genSummary = async () => {
   setGl(true);
   try {
     const res = await fetch("/api/summary",{
@@ -305,9 +305,10 @@ function Detail({sermon, user, p0, back}) {
       body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:`Write a warm 3-4 sentence summary in second person to help this person remember and apply the message.\n\nSermon: ${sermon.title}\nSpeaker: ${sermon.speaker}\nScriptures: ${sermon.scriptures}\nNotes: ${sermon.notes}\nHow God Spoke: ${godSpoke}`}]})
     });
     const data = await res.json();
-    const text = data.content?data.content.map(b=>b.text||"").join(""):"Could not generate summary.";
+    console.log("API response:", data); // TEMP DEBUG
+    const text = data.content?data.content.map(b=>b.text||"").join(""):JSON.stringify(data);
     setSummary(text); await save({summary:text,godSpoke});
-  } catch { setSummary("Error generating summary."); }
+  } catch (e) { setSummary("Error: "+e.message); }
   setGl(false);
 };
 
