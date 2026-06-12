@@ -244,12 +244,15 @@ function Cong({user, isAdmin, setMode, sermons, selected, setSelected}) {
       </div>
     </div>
   );
-  const sermon = sermons.find(s=>s.id===selected);
+ const sermon = sermons.find(s=>s.id===selected);
   if (!sermon) { setSelected(null); return null; }
-  return <Detail sermon={sermon} user={user} p0={pMap[sermon.id]||{godSpoke:"",audioDataUrl:null,summary:"",shared:false,annotations:{}}} back={()=>setSelected(null)}/>;
-}
+  const idx = pub.findIndex(s=>s.id===sermon.id);
+  const older = idx>=0 && idx<pub.length-1 ? pub[idx+1] : null;
+  const newer = idx>0 ? pub[idx-1] : null;
+  return <Detail key={sermon.id} sermon={sermon} user={user} p0={pMap[sermon.id]||{godSpoke:"",audioDataUrl:null,summary:"",shared:false,annotations:{}}} back={()=>setSelected(null)}
+    onOlder={older?()=>setSelected(older.id):null} onNewer={newer?()=>setSelected(newer.id):null}/>;
 
-function Detail({sermon, user, p0, back}) {
+function Detail({sermon, user, p0, back, onOlder, onNewer}) {
   const pid = sermon.id;
   const [p,setP] = useState(p0);
   const [audio,setAudio] = useState(p0.audioDataUrl||null);
@@ -354,9 +357,16 @@ const genSummary = async () => {
   const paras = sermon.notes?sermon.notes.split("\n").filter(l=>l.trim()):[];
 
   return (
-    <div style={{...S.app, paddingBottom:0}}>
-      {/* Action bar — replaces header */}
-      <div style={{background:`linear-gradient(135deg,${ACCENT},${ACCENT2})`, display:"flex", boxShadow:"0 2px 12px rgba(19,72,160,0.3)", position:"sticky", top:0, zIndex:100}}>
+   <div style={{...S.app, paddingBottom:0}}>
+      {/* Nav bar + Action bar */}
+      <div style={{position:"sticky", top:0, zIndex:100, boxShadow:"0 2px 12px rgba(19,72,160,0.3)"}}>
+        <div style={{display:"flex", alignItems:"center", padding:"8px 12px", gap:8, background:CARD, borderBottom:"1px solid #E5EAF1"}}>
+          <button onClick={back} style={{...S.oBtn(ACCENT), padding:"6px 12px", fontSize:12, display:"flex", alignItems:"center", gap:4}}>🏠 Home</button>
+          <div style={{flex:1}}/>
+          <button onClick={onOlder} disabled={!onOlder} style={{...S.oBtn(onOlder?ACCENT:"#CCC"), padding:"6px 10px", fontSize:12, cursor:onOlder?"pointer":"default", opacity:onOlder?1:0.5}}>← Older</button>
+          <button onClick={onNewer} disabled={!onNewer} style={{...S.oBtn(onNewer?ACCENT:"#CCC"), padding:"6px 10px", fontSize:12, cursor:onNewer?"pointer":"default", opacity:onNewer?1:0.5}}>Newer →</button>
+        </div>
+      <div style={{background:`linear-gradient(135deg,${ACCENT},${ACCENT2})`, display:"flex"}}>
         {[
           {icon:"📖", label:"God Spoke", onClick:()=>setGsMod(true), bg: godSpoke?"rgba(255,255,255,0.2)":"transparent"},
           {icon:"⭐", label:"Summary", onClick:()=>setSumMod(true), bg: summary?"rgba(255,255,255,0.2)":"transparent"},
@@ -366,7 +376,8 @@ const genSummary = async () => {
             <span style={{fontSize:20}}>{b.icon}</span>
             <span style={{fontSize:9, color:"#fff", fontFamily:"Georgia,serif", fontWeight:"bold", letterSpacing:.3, whiteSpace:"nowrap"}}>{b.label}</span>
           </button>
-        ))}
+       ))}
+      </div>
       </div>
 
       <div style={S.body}>
