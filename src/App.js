@@ -11,6 +11,25 @@ const SPOKE_BG = "#EBF2FC", SPOKE_BORDER = "#90BAE8";
 const fmt = d => { if (!d) return ""; const [y,m,day] = d.split("-"); return new Date(+y,+m-1,+day).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}); };
 const fmtT = s => `${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
 const scriptureUrl = ref => `https://www.biblegateway.com/passage/?search=${encodeURIComponent(ref.trim())}&version=NIV`;
+const BIBLE_BOOKS = "Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|(?:1|2|First|Second|I|II)?\\s?Samuel|(?:1|2|First|Second|I|II)?\\s?Kings|(?:1|2|First|Second|I|II)?\\s?Chronicles|Ezra|Nehemiah|Esther|Job|Psalms?|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|(?:1|2|First|Second|I|II)?\\s?Corinthians|Galatians|Ephesians|Philippians|Colossians|(?:1|2|First|Second|I|II)?\\s?Thessalonians|(?:1|2|First|Second|I|II)?\\s?Timothy|Titus|Philemon|Hebrews|James|(?:1|2|First|Second|I|II)?\\s?Peter|(?:1|2|First|Second|I|II|1-3|First-Third)?\\s?John|Jude|Revelation";
+
+const SCRIPTURE_RE = new RegExp(`\\b((?:[1-3]\\s)?(?:${BIBLE_BOOKS}))\\s(\\d{1,3}(?::\\d{1,3}(?:-\\d{1,3})?)?)`, "g");
+
+const linkifyScripture = text => {
+  const parts = []; let last = 0; let m;
+  const re = new RegExp(SCRIPTURE_RE.source, "g");
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const ref = m[0];
+    parts.push(
+      <span key={m.index} onClick={e=>{e.preventDefault();e.stopPropagation();window.open(scriptureUrl(ref),"_blank","noopener,noreferrer");}}
+        style={{color:ACCENT, fontWeight:"bold", cursor:"pointer", borderBottom:`1px dotted ${ACCENT}`}}>{ref}</span>
+    );
+    last = re.lastIndex;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+};
 const hasContent = p => !!(p && (p.godSpoke || p.audioDataUrl || p.summary || (p.annotations && Object.keys(p.annotations).length > 0)));
 
 const Logo = ({size=48}) => (
@@ -386,8 +405,8 @@ const genSummary = async () => {
         {/* Sermon title */}
         <h2 style={{margin:"0 0 3px", fontSize:20}}>{sermon.title}</h2>
         <div style={{color:MUTED, fontSize:13, marginBottom:8}}>{sermon.speaker&&sermon.speaker+" · "}{fmt(sermon.date)}</div>
-      {sermon.scriptures&&sermon.scriptures.split(",").map((sc,i)=>
-          <a key={i} href={scriptureUrl(sc)} target="_blank" rel="noopener noreferrer" style={{...S.tag(), textDecoration:"none", cursor:"pointer"}}>📖 {sc.trim()}</a>
+     {sermon.scriptures&&sermon.scriptures.split(",").map((sc,i)=>
+          <span key={i} onClick={e=>{e.preventDefault();e.stopPropagation();window.open(scriptureUrl(sc),"_blank","noopener,noreferrer");}} style={{...S.tag(), textDecoration:"none", cursor:"pointer"}}>📖 {sc.trim()}</span>
         )}
 
         {/* Saved content */}
@@ -428,7 +447,7 @@ const genSummary = async () => {
           : paras.map((para,i)=>(
             <div key={i} style={{marginBottom:14}}>
               <div style={{display:"flex", alignItems:"flex-start", gap:8}}>
-                <div style={{fontSize:15, lineHeight:1.8, flex:1}}>{para}</div>
+                <div style={{fontSize:15, lineHeight:1.8, flex:1}}>{linkifyScripture(para)}</div>
                 <button onClick={()=>{setNoteMod({i,existing:anno[i]||""});setNoteText(anno[i]||"");}} style={{background:anno[i]?"#DBEAFE":"#F1F5F9", border:"none", borderRadius:6, width:30, height:30, cursor:"pointer", fontSize:15, flexShrink:0, marginTop:4, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,0.1)"}}>
                   {anno[i]?"✏️":"+"}
                 </button>
