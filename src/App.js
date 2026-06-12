@@ -297,19 +297,19 @@ function Detail({sermon, user, p0, back}) {
   };
 
   const genSummary = async () => {
-    setGl(true);
-    try {
-      const res = await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-api-key":process.env.REACT_APP_ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-allow-browser":"true"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:`Write a warm 3-4 sentence summary in second person to help this person remember and apply the message.\n\nSermon: ${sermon.title}\nSpeaker: ${sermon.speaker}\nScriptures: ${sermon.scriptures}\nNotes: ${sermon.notes}\nHow God Spoke: ${godSpoke}`}]})
-      });
-      const data = await res.json();
-      const text = data.content?data.content.map(b=>b.text||"").join(""):"Could not generate summary.";
-      setSummary(text); await save({summary:text,godSpoke});
-    } catch { setSummary("Error generating summary."); }
-    setGl(false);
-  };
+  setGl(true);
+  try {
+    const res = await fetch("/api/summary",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:`Write a warm 3-4 sentence summary in second person to help this person remember and apply the message.\n\nSermon: ${sermon.title}\nSpeaker: ${sermon.speaker}\nScriptures: ${sermon.scriptures}\nNotes: ${sermon.notes}\nHow God Spoke: ${godSpoke}`}]})
+    });
+    const data = await res.json();
+    const text = data.content?data.content.map(b=>b.text||"").join(""):"Could not generate summary.";
+    setSummary(text); await save({summary:text,godSpoke});
+  } catch { setSummary("Error generating summary."); }
+  setGl(false);
+};
 
   const saveGs = async () => { await save({godSpoke,summary}); setGsMod(false); };
 
