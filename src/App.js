@@ -10,6 +10,7 @@ const SPOKE_BG = "#EBF2FC", SPOKE_BORDER = "#90BAE8";
 
 const fmt = d => { if (!d) return ""; const [y,m,day] = d.split("-"); return new Date(+y,+m-1,+day).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}); };
 const fmtT = s => `${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
+const scriptureUrl = ref => `https://www.biblegateway.com/passage/?search=${encodeURIComponent(ref.trim())}&version=NIV`;
 const hasContent = p => !!(p && (p.godSpoke || p.audioDataUrl || p.summary || (p.annotations && Object.keys(p.annotations).length > 0)));
 
 const Logo = ({size=48}) => (
@@ -385,7 +386,9 @@ const genSummary = async () => {
         {/* Sermon title */}
         <h2 style={{margin:"0 0 3px", fontSize:20}}>{sermon.title}</h2>
         <div style={{color:MUTED, fontSize:13, marginBottom:8}}>{sermon.speaker&&sermon.speaker+" · "}{fmt(sermon.date)}</div>
-        {sermon.scriptures&&sermon.scriptures.split(",").map((sc,i)=><span key={i} style={S.tag()}>📖 {sc.trim()}</span>)}
+      {sermon.scriptures&&sermon.scriptures.split(",").map((sc,i)=>
+          <a key={i} href={scriptureUrl(sc)} target="_blank" rel="noopener noreferrer" style={{...S.tag(), textDecoration:"none", cursor:"pointer"}}>📖 {sc.trim()}</a>
+        )}
 
         {/* Saved content */}
         {audio && (
