@@ -249,8 +249,9 @@ function Cong({user, isAdmin, setMode, sermons, selected, setSelected}) {
   const idx = pub.findIndex(s=>s.id===sermon.id);
   const older = idx>=0 && idx<pub.length-1 ? pub[idx+1] : null;
   const newer = idx>0 ? pub[idx-1] : null;
-  return <Detail key={sermon.id} sermon={sermon} user={user} p0={pMap[sermon.id]||{godSpoke:"",audioDataUrl:null,summary:"",shared:false,annotations:{}}} back={()=>setSelected(null)}
+return <Detail key={sermon.id} sermon={sermon} user={user} p0={pMap[sermon.id]||{godSpoke:"",audioDataUrl:null,summary:"",shared:false,annotations:{}}} back={()=>setSelected(null)}
     onOlder={older?()=>setSelected(older.id):null} onNewer={newer?()=>setSelected(newer.id):null}/>;
+}
 
 function Detail({sermon, user, p0, back, onOlder, onNewer}) {
   const pid = sermon.id;
