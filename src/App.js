@@ -124,14 +124,23 @@ function Splash({user, isAdmin, setMode}) {
 }
 
 function Auth({mode, user, isAdmin, setMode}) {
-  const [email,setEmail]=useState(""); const [pass,setPass]=useState(""); const [err,setErr]=useState(""); const [busy,setBusy]=useState(false);
+  const [email,setEmail]=useState(""); const [pass,setPass]=useState(""); const [confirmPass,setConfirmPass]=useState("");
+  const [showPass,setShowPass]=useState(false); const [showConfirm,setShowConfirm]=useState(false);
+  const [err,setErr]=useState(""); const [busy,setBusy]=useState(false);
   const isLogin = mode==="login";
   const handle = async () => {
-    setErr(""); setBusy(true);
+    setErr("");
+    if(!isLogin && pass!==confirmPass) { setErr("Passwords do not match."); return; }
+    setBusy(true);
     try { if (isLogin) await signInWithEmailAndPassword(auth,email,pass); else await createUserWithEmailAndPassword(auth,email,pass); }
     catch(e) { setErr(e.message.replace("Firebase: ","").replace(/\(auth.*\)/,"")); }
     setBusy(false);
   };
+  const eyeBtn = (show,setShow) => (
+    <span onClick={()=>setShow(s=>!s)} style={{position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", cursor:"pointer", fontSize:16, color:MUTED, userSelect:"none"}}>
+      {show?"🙈":"👁️"}
+    </span>
+  );
   return (
     <div style={S.app}>
       <Hdr user={user} isAdmin={isAdmin} setMode={setMode} right={<button style={{...S.btn("transparent"),"color":"rgba(255,255,255,0.7)", padding:"5px 0"}} onClick={() => setMode("splash")}>Back</button>}/>
@@ -139,7 +148,22 @@ function Auth({mode, user, isAdmin, setMode}) {
         <div style={{textAlign:"center", padding:"28px 0 20px"}}><Logo size={52}/><h2 style={{margin:"10px 0 4px", color:ACCENT}}>{isLogin?"Welcome Back":"Create Account"}</h2><p style={{color:MUTED, fontSize:14}}>{isLogin?"Sign in to see your sermon notes":"Join Rhema to save your sermon notes"}</p></div>
         {err && <div style={{background:"#FEE2E2", color:"#B91C1C", padding:"10px 14px", borderRadius:8, marginBottom:14, fontSize:13}}>{err}</div>}
         <div style={{marginBottom:12}}><label style={S.lbl}>Email</label><input style={S.inp} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com"/></div>
-        <div style={{marginBottom:20}}><label style={S.lbl}>Password</label><input style={S.inp} type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="Password" onKeyDown={e=>e.key==="Enter"&&handle()}/></div>
+        <div style={{marginBottom:isLogin?20:12}}>
+          <label style={S.lbl}>Password</label>
+          <div style={{position:"relative"}}>
+            <input style={{...S.inp, paddingRight:40}} type={showPass?"text":"password"} value={pass} onChange={e=>setPass(e.target.value)} placeholder="Password" onKeyDown={e=>e.key==="Enter"&&(isLogin?handle():null)}/>
+            {eyeBtn(showPass,setShowPass)}
+          </div>
+        </div>
+        {!isLogin && (
+          <div style={{marginBottom:20}}>
+            <label style={S.lbl}>Confirm Password</label>
+            <div style={{position:"relative"}}>
+              <input style={{...S.inp, paddingRight:40}} type={showConfirm?"text":"password"} value={confirmPass} onChange={e=>setConfirmPass(e.target.value)} placeholder="Confirm Password" onKeyDown={e=>e.key==="Enter"&&handle()}/>
+              {eyeBtn(showConfirm,setShowConfirm)}
+            </div>
+          </div>
+        )}
         <button style={{...S.btn(`linear-gradient(135deg,${ACCENT},${ACCENT2})`), width:"100%", padding:"12px"}} onClick={handle} disabled={busy}>{busy?"Please wait...":isLogin?"Sign In":"Create Account"}</button>
         <p style={{textAlign:"center", color:MUTED, fontSize:13, marginTop:16}}>{isLogin?"Don't have an account? ":"Already have an account? "}<span style={{color:ACCENT, cursor:"pointer", fontWeight:"bold"}} onClick={()=>setMode(isLogin?"register":"login")}>{isLogin?"Create one":"Sign In"}</span></p>
       </div>
