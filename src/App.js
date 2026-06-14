@@ -197,7 +197,22 @@ function Admin({user, isAdmin, setMode, sermons}) {
   const [view,setView]=useState("list"); const [cur,setCur]=useState(null);
   const hc=(f,v)=>setCur(p=>({...p,[f]:v}));
   const empty=()=>({date:new Date().toISOString().split("T")[0],title:"",speaker:"",scriptures:"",notes:"",published:false});
-  const save=async()=>{ if(!cur.title.trim()) return alert("Please enter a title."); if(cur.id) await updateDoc(doc(db,"sermons",cur.id),cur); else { const r=doc(collection(db,"sermons")); await setDoc(r,{...cur,id:r.id}); } setView("list"); };
+ const save=async()=>{
+    if(!cur.title.trim()) return alert("Please enter a title.");
+    let toSave = {...cur};
+    try {
+      const res = await fetch("/api/summary",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:`Write a warm 3-4 sentence sermon summary in second person to help someone remember and apply the message.\n\nSermon: ${cur.title}\nSpeaker: ${cur.speaker}\nScriptures: ${cur.scriptures}\nNotes: ${cur.notes}`}]})
+      });
+      const data = await res.json();
+      const text = data.content?data.content.map(b=>b.text||"").join(""):null;
+      if(text) toSave.aiSummary = text;
+    } catch {}
+    if(cur.id) await updateDoc(doc(db,"sermons",cur.id),toSave); else { const r=doc(collection(db,"sermons")); await setDoc(r,{...toSave,id:r.id}); }
+    setView("list");
+  };
   const del=async id=>{ if(!window.confirm("Delete?")) return; await deleteDoc(doc(db,"sermons",id)); setView("list"); };
   if (view==="list") return (
     <div style={S.app}>
@@ -255,7 +270,7 @@ function Cong({user, isAdmin, setMode, sermons, selected, setSelected}) {
                 <div style={{color:MUTED, fontSize:13, marginBottom:8}}>{s.speaker&&s.speaker+" · "}{fmt(s.date)}</div>
                 {s.scriptures && <span style={S.tag()}>📖 {s.scriptures.split(",")[0].trim()}</span>}
                 {p?.audioDataUrl && <span style={S.tag("#E0F0FF","#1565A8")}>🎙️ Audio</span>}
-                {p?.summary && <span style={S.tag("#FFFBEF","#8A6E2F")}>⭐ Summary</span>}
+               {s.aiSummary && <span style={S.tag("#FFFBEF","#8A6E2F")}>⭐ Summary</span>}
                 {p?.godSpoke && <span style={S.tag(SPOKE_BG,"#1A4A80")}>📖 My Word</span>}
                 {hasContent(p) && <span style={S.tag("#F0FDF4","#166534")}>✓ Saved</span>}
               </div>
@@ -281,7 +296,6 @@ function Detail({sermon, user, p0, back, onOlder, onNewer}) {
   const [audio,setAudio] = useState(p0.audioDataUrl||null);
   const [rec,setRec] = useState(false);
   const [rt,setRt] = useState(0);
-  const [gl,setGl] = useState(false);
   const [shared,setShared] = useState([]);
   const [anno,setAnno] = useState(p0.annotations||{});
   const [noteMod,setNoteMod] = useState(null);
@@ -289,8 +303,7 @@ function Detail({sermon, user, p0, back, onOlder, onNewer}) {
   const [gsMod,setGsMod] = useState(false);
   const [sumMod,setSumMod] = useState(false);
   const [godSpoke,setGodSpoke] = useState(p0.godSpoke||"");
-  const [summary,setSummary] = useState(p0.summary||"");
-  const mrRef=useRef(null); const streamRef=useRef(null); const chunks=useRef([]); const timerRef=useRef(null);
+   const mrRef=useRef(null); const streamRef=useRef(null); const chunks=useRef([]); const timerRef=useRef(null);
 
   useEffect(()=>{ return onSnapshot(collection(db,"shared",pid,"entries"),snap=>setShared(snap.docs.map(d=>d.data()))); },[pid]);
 
@@ -346,25 +359,10 @@ function Detail({sermon, user, p0, back, onOlder, onNewer}) {
     await setDoc(doc(db,"users",user.uid,"entries",pid),e);
   };
 
-const genSummary = async () => {
-  setGl(true);
-  try {
-    const res = await fetch("/api/summary",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:`Write a warm 3-4 sentence summary in second person to help this person remember and apply the message.\n\nSermon: ${sermon.title}\nSpeaker: ${sermon.speaker}\nScriptures: ${sermon.scriptures}\nNotes: ${sermon.notes}\nHow God Spoke: ${godSpoke}`}]})
-    });
-    const data = await res.json();
-    const text = data.content?data.content.map(b=>b.text||"").join(""):"Could not generate summary.";
-    setSummary(text); await save({summary:text,godSpoke});
-  } catch { setSummary("Error generating summary."); }
-  setGl(false);
-};
+ const saveGs = async () => { await save({godSpoke}); setGsMod(false); };
 
-  const saveGs = async () => { await save({godSpoke,summary}); setGsMod(false); };
-
-  const toggleShare = async () => {
-    const next=!p.shared; await save({shared:next,godSpoke,summary});
+const toggleShare = async () => {
+    const next=!p.shared; await save({shared:next,godSpoke});
     const ref=doc(db,"shared",pid,"entries",user.uid);
     if(next&&godSpoke) await setDoc(ref,{email:user.email,text:godSpoke}); else await deleteDoc(ref);
   };
@@ -392,7 +390,7 @@ const genSummary = async () => {
       <div style={{background:`linear-gradient(135deg,${ACCENT},${ACCENT2})`, display:"flex"}}>
         {[
           {icon:"📖", label:"God Spoke", onClick:()=>setGsMod(true), bg: godSpoke?"rgba(255,255,255,0.2)":"transparent"},
-          {icon:"⭐", label:"Summary", onClick:()=>setSumMod(true), bg: summary?"rgba(255,255,255,0.2)":"transparent"},
+         {icon:"⭐", label:"Sermon Summary", onClick:()=>setSumMod(true), bg: sermon.aiSummary?"rgba(255,255,255,0.2)":"transparent"},
           {icon:rec?"⏹":"⏺", label:rec?`Stop ${fmtT(rt)}`:"Record", onClick:rec?stopRec:startRec, bg:rec?"rgba(239,68,68,0.8)":"transparent"},
         ].map(b=>(
           <button key={b.label} onClick={b.onClick} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, padding:"10px 4px", background:b.bg, border:"none", cursor:"pointer", borderRight:"1px solid rgba(255,255,255,0.1)", animation:rec&&b.label.startsWith("Stop")?"pulse 1s infinite":"none"}}>
@@ -435,10 +433,10 @@ const genSummary = async () => {
           </div>
         )}
 
-        {summary && (
+      {sermon.aiSummary && (
           <div style={{background:"#FFFBEF", border:`1.5px solid ${GOLD}`, borderRadius:12, padding:14, marginBottom:12, cursor:"pointer"}} onClick={()=>setSumMod(true)}>
-            <div style={S.sec}>⭐ AI Summary <span style={{color:GOLD, fontSize:10, fontStyle:"italic", textTransform:"none"}}>tap to regenerate</span></div>
-            <div style={{fontSize:14, color:"#5A4A20", lineHeight:1.7}}>{summary}</div>
+            <div style={S.sec}>⭐ Sermon Summary</div>
+            <div style={{fontSize:14, color:"#5A4A20", lineHeight:1.7}}>{sermon.aiSummary}</div>
           </div>
         )}
 
@@ -493,15 +491,12 @@ const genSummary = async () => {
         </Modal>
       )}
 
-      {/* Summary Modal */}
+     {/* Sermon Summary Modal */}
       {sumMod && (
-        <Modal onClose={()=>setSumMod(false)} title="⭐ AI Summary">
-          {gl && <div style={{color:MUTED, fontStyle:"italic", textAlign:"center", padding:"20px 0"}}>Reflecting on the message... ⭐</div>}
-          {summary&&!gl && <div style={{fontSize:15, lineHeight:1.8, color:"#5A4A20", marginBottom:16}}>{summary}</div>}
-          {!summary&&!gl && <div style={{color:MUTED, fontSize:14, fontStyle:"italic", textAlign:"center", padding:"10px 0 16px"}}>Tap below to generate your personal AI recap.</div>}
-          <button style={{...S.btn(gl?"#CCC":GOLD), width:"100%", padding:"12px"}} onClick={genSummary} disabled={gl}>
-            {gl?"Generating...":summary?"Regenerate Summary":"Generate Summary"}
-          </button>
+        <Modal onClose={()=>setSumMod(false)} title="⭐ Sermon Summary">
+          {sermon.aiSummary
+            ? <div style={{fontSize:15, lineHeight:1.8, color:"#5A4A20"}}>{sermon.aiSummary}</div>
+            : <div style={{color:MUTED, fontSize:14, fontStyle:"italic", textAlign:"center", padding:"10px 0"}}>No summary available for this sermon yet.</div>}
         </Modal>
       )}
 
