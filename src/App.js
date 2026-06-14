@@ -441,7 +441,7 @@ const toggleShare = async () => {
         )}
 
         {/* Pastor's notes */}
-        <div style={{...S.card("#22C55E"), marginTop: godSpoke||summary||audio||rec ? 0 : 14}}>
+        <div style={{...S.card("#22C55E"), marginTop: godSpoke||sermon.aiSummary||audio||rec ? 0 : 14}}>
           <div style={S.sec}>📋 Pastor's Notes</div>
           {paras.length===0 ? <div style={{color:MUTED, fontStyle:"italic"}}>No notes provided yet.</div>
           : paras.map((para,i)=>(
